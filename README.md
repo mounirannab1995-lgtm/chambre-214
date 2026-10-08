@@ -25,3 +25,11 @@ Depuis le navigateur du téléphone, ajoute ensuite la page à l’écran d’ac
 La simulation impose maintenant la sélection réelle de l’outil avant l’action. Elle bloque les interventions électriques dangereuses sous tension, notamment le remplacement de la réglette LED, et n’affiche dans le bon d’intervention que la cause correspondant à la panne tirée.
 
 Cette application reste un entraînement au raisonnement. Elle ne remplace pas une habilitation électrique, les procédures de l’hôtel, ni une intervention réelle encadrée.
+
+## Atelier maintenance
+
+L’accueil contient désormais un mode séparé **Atelier maintenance**, intégré à la même application Chambre 214. Il propose sept modules : tableau électrique de chambre, climatisation, chasse d’eau, fuite sous lavabo, eau chaude et douche thermostatique, serrure à carte et petits travaux hôteliers.
+
+Chaque module comprend une partie Comprendre, une manipulation interactive avec prérequis, un quiz sécurité et un débrief. La progression est conservée dans le stockage local du navigateur et fonctionne hors connexion après le chargement de l’application. Le module électrique impose la logique **couper → condamner → vérifier au VAT** avant ouverture.
+
+Cet atelier est un support pédagogique : il ne remplace ni une habilitation électrique, ni les procédures de l’hôtel, ni les notices fabricant, ni l’intervention d’une personne qualifiée.
