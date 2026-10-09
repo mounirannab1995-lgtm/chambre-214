@@ -111,6 +111,31 @@ button.dcard:hover{border-color:var(--brass)}
 .atelier-legend{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--dim)}
 .atelier-legend span{border:1px solid var(--rule);border-radius:999px;padding:3px 8px}
 .atelier-debrief li{margin-bottom:5px}
+.atelier-scene svg.ae-svg{max-height:none;max-width:min(100%,73vh);margin:0 auto;background:transparent}
+.ae-flow{animation:ae-flow 1s linear infinite}
+@keyframes ae-flow{to{stroke-dashoffset:-24}}
+.ae-spin{transform-box:fill-box;transform-origin:center;animation:atelier-spin 1.6s linear infinite}
+@media (prefers-reduced-motion:reduce){.ae-flow,.ae-spin{animation:none}}
+.ae-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ae-crumb{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 12px;border:1px solid var(--rule);background:var(--slab);border-radius:10px;font-weight:700;cursor:pointer}
+.ae-crumb.on{background:var(--brass);border-color:var(--brass);color:var(--brass-ink)}
+.ae-crumb:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.ae-sep{color:var(--dim);font-weight:700}
+.ae-dot{width:10px;height:10px;border-radius:50%;background:#7d878b;flex:none}
+.ae-dot.live{background:#f0a23b;box-shadow:0 0 0 3px rgba(240,162,59,.28)}
+.ae-msg{margin:0;border-left:3px solid var(--cool);background:var(--slab2);padding:9px 12px;border-radius:0 8px 8px 0;font-size:15px}
+.ae-msg.good{border-left-color:var(--ok)}
+.ae-msg.bad{border-left-color:var(--fault)}
+.ae-info{background:var(--slab);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;display:grid;gap:8px}
+.ae-info h3{font-size:20px}
+.ae-info dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:14.5px}
+.ae-info dt{color:var(--dim);font-family:var(--f-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.ae-info dd{margin:0}
+.ae-warn{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--brass);background:rgba(226,165,65,.1);border-radius:10px;padding:10px 12px;font-size:14.5px}
+.ae-legend .ae-sw{display:inline-block;width:18px;border-top:3px solid #d9822b;vertical-align:middle;margin-right:6px}
+.ae-legend .ae-sw.dead{border-top:3px dashed #a9b0b3}
+.ae-legend .ae-baes{display:inline-block;width:14px;height:8px;border-radius:2px;background:#2fd27a;vertical-align:middle;margin-right:6px}
+@media (max-width:420px){.ae-info dl{grid-template-columns:1fr;gap:2px}.ae-info dd{margin-bottom:6px}.ae-crumbs{gap:4px}.ae-crumb{padding:8px 10px;font-size:15px}}
 .atelier-parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .atelier-part{width:100%;min-height:58px}
 .atelier-part small{display:block}
@@ -3000,60 +3025,272 @@ let atelier={id:null,tab:'learn',done:[],blocked:[],answers:{},submitted:false};
 function atelierShow(){['start','play','bon','debrief','report','demo'].forEach(s=>{$('scr-'+s).hidden=true;});$('scr-atelier').hidden=false;S.screen='atelier';$('belt').hidden=true;$('app').classList.remove('playing');atelierRenderList();window.scrollTo(0,0);}
 function atelierProgress(m,p){const x=p[m.id]||{};return x.quiz>=70&&x.exercise?100:(x.exercise?75:(x.quiz?25:0));}
 function atelierRenderList(){const p=atelierRead();$('atelier-sub').textContent=`${ATELIER_MODULES.filter(m=>atelierProgress(m,p)===100).length}/${ATELIER_MODULES.length} modules validés · progression conservée sur cet appareil`;$('atelier-content').innerHTML=`<div class="atelier-grid">${ATELIER_MODULES.map(m=>{const n=atelierProgress(m,p);return `<button class="atelier-module" data-am="${m.id}"><span class="tag">${m.icon} ${esc(m.title)}</span><p>${esc(m.summary)}</p><small>${n}% · ${m.actions.length} gestes · ${m.quiz.length} questions</small><span class="progress"><i style="width:${n}%"></i></span></button>`;}).join('')}</div><div class="atelier-alert" style="margin-top:14px"><b>Support pédagogique uniquement.</b> Cet atelier ne remplace ni une habilitation, ni les procédures de l’hôtel, ni l’intervention d’une personne qualifiée.</div>`;}
-function atelierOpen(id){atelier={id,tab:'learn',done:[],blocked:[],answers:{},submitted:false,elecView:'room',elec:{hotel:true,floor:true,room:true,light:true,sockets:true,clim:true}};atelierRender();}
-function atelierElecOn(c){
-  const e=atelier.elec||{};
-  if(c==='hotel') return !!e.hotel;
-  if(c==='floor') return !!e.hotel&&!!e.floor;
-  if(c==='room') return !!e.hotel&&!!e.floor&&!!e.room;
-  return atelierElecOn('room')&&!!e[c];
+function atelierOpen(id){atelier={id,tab:'learn',done:[],blocked:[],answers:{},submitted:false,aeView:'room',ae:aeInit()};atelierRender();}
+/* ---------- Atelier · module électrique : schémas de distribution reliés ----------
+   Une seule installation en cascade : TGBT (Q0 → Q1 à Q4) → tableau d’étage 2 (IG → départs A, B, couloir, service)
+   → tableau de la chambre 214 (relais du porte-carte → différentiel 30 mA → éclairage, prises, clim).
+   Couper un appareil coupe tout ce qui est en aval. Les gestes de consignation se vérifient sur ce même schéma.
+   Les calibres sont des valeurs d’exemple, cohérentes entre elles (plus on remonte, plus le calibre est gros). */
+const AE_DEV = {
+  q0: { lvl: 'hotel', tag: 'Q0', name: 'Disjoncteur général du TGBT', short: 'le général Q0 du TGBT', cal: '250 A',
+    cut: 'Q0 coupé : tout l’hôtel est hors tension (chambres, couloirs, cuisine, ascenseur). Seuls les blocs de secours (BAES) restent allumés, sur batterie.',
+    arm: 'Q0 réarmé : le courant revient sur le jeu de barres du TGBT, puis dans chaque départ enclenché.' },
+  q1: { lvl: 'hotel', tag: 'Q1', name: 'Départ rez-de-chaussée', short: 'le départ Q1 du TGBT', cal: '63 A',
+    cut: 'Q1 coupé : le rez-de-chaussée est hors tension (accueil, salle du petit-déjeuner). Les étages ne sont pas touchés.',
+    arm: 'Q1 réarmé : le rez-de-chaussée est de nouveau alimenté.' },
+  q2: { lvl: 'hotel', tag: 'Q2', name: 'Départ étage 1', short: 'le départ Q2 du TGBT', cal: '63 A',
+    cut: 'Q2 coupé : l’étage 1 est hors tension (chambres 112 à 118 et couloir). L’étage 2 continue de fonctionner.',
+    arm: 'Q2 réarmé : l’étage 1 est de nouveau alimenté.' },
+  q3: { lvl: 'hotel', tag: 'Q3', name: 'Départ étage 2', short: 'le départ Q3 du TGBT', cal: '63 A',
+    cut: 'Q3 coupé : l’étage 2 est hors tension, chambres 212 à 218 et couloir. C’est ce départ qui alimente le tableau d’étage de la chambre 214.',
+    arm: 'Q3 réarmé : le tableau d’étage 2 est de nouveau alimenté.' },
+  q4: { lvl: 'hotel', tag: 'Q4', name: 'Départ services', short: 'le départ Q4 du TGBT', cal: '100 A',
+    cut: 'Q4 coupé : cuisine, chaufferie et ascenseur sont hors tension. En vrai, on vérifie d’abord que personne n’est dans l’ascenseur.',
+    arm: 'Q4 réarmé : les services sont de nouveau alimentés.' },
+  ig: { lvl: 'floor', tag: 'IG', name: 'Interrupteur général d’étage', short: 'l’interrupteur général de l’étage 2', cal: '63 A',
+    cut: 'Interrupteur général d’étage coupé : tout l’étage 2 est hors tension, chambres et couloir. Les blocs de secours du couloir s’allument.',
+    arm: 'Interrupteur général d’étage réarmé : les départs de l’étage 2 sont de nouveau alimentés.' },
+  depA: { lvl: 'floor', tag: 'A', name: 'Départ A, chambres 212 et 214', short: 'le départ A du tableau d’étage', cal: '40 A',
+    cut: 'Départ A coupé : les chambres 212 et 214 n’ont plus de courant. La 216, la 218 et le couloir restent alimentés.',
+    arm: 'Départ A réarmé : les chambres 212 et 214 sont de nouveau alimentées.' },
+  depB: { lvl: 'floor', tag: 'B', name: 'Départ B, chambres 216 et 218', short: 'le départ B du tableau d’étage', cal: '40 A',
+    cut: 'Départ B coupé : les chambres 216 et 218 sont dans le noir. La 214 n’est pas touchée.',
+    arm: 'Départ B réarmé : les chambres 216 et 218 sont de nouveau alimentées.' },
+  cou: { lvl: 'floor', tag: 'C', name: 'Éclairage du couloir', short: 'l’éclairage du couloir', cal: '10 A',
+    cut: 'Éclairage du couloir coupé : les blocs de secours (BAES) s’allument pour baliser la sortie.',
+    arm: 'Éclairage du couloir réarmé : les blocs de secours repassent en veille.' },
+  svc: { lvl: 'floor', tag: 'S', name: 'Prises de service du couloir', short: 'les prises de service', cal: '16 A',
+    cut: 'Prises de service coupées : plus de courant pour l’aspirateur du ménage. Les chambres ne sont pas touchées.',
+    arm: 'Prises de service réarmées.' },
+  card: { lvl: 'room', tag: '', name: 'Carte dans le porte-carte', short: 'la carte',
+    cut: 'Carte retirée : le relais du porte-carte s’ouvre, tout ce qui est après lui est coupé. Les bornes d’arrivée du tableau, elles, restent sous tension !',
+    arm: 'Carte insérée : le relais se ferme, la chambre est alimentée.' },
+  diff: { lvl: 'room', tag: 'ID', name: 'Interrupteur différentiel 30 mA', short: 'le différentiel de la chambre', cal: '30 mA',
+    cut: 'Différentiel coupé : éclairage, prises et clim de la chambre sont hors tension. Mais les bornes d’arrivée du tableau restent sous tension.',
+    arm: 'Différentiel réarmé : les trois circuits de la chambre sont de nouveau alimentés.' },
+  bl: { lvl: 'room', tag: '', name: 'Disjoncteur éclairage 16 A', short: 'le disjoncteur éclairage', cal: '16 A',
+    cut: 'Disjoncteur éclairage coupé : plafonnier et salle de bain éteints. Les prises et la clim marchent toujours.',
+    arm: 'Disjoncteur éclairage réarmé : la lumière revient.' },
+  bp: { lvl: 'room', tag: '', name: 'Disjoncteur prises 16 A', short: 'le disjoncteur prises', cal: '16 A',
+    cut: 'Disjoncteur prises coupé : plus de courant dans les prises. La lumière et la clim marchent toujours.',
+    arm: 'Disjoncteur prises réarmé.' },
+  bc: { lvl: 'room', tag: '', name: 'Disjoncteur clim 20 A', short: 'le disjoncteur clim', cal: '20 A',
+    cut: 'Disjoncteur clim coupé : le ventilo-convecteur s’arrête. Le reste de la chambre marche.',
+    arm: 'Disjoncteur clim réarmé : la clim redémarre.' }
+};
+/* Niveaux : [id, nom court (fil d’Ariane), titre, où, qui intervient, ce qu’on y voit] */
+const AE_LEVELS = [
+  ['hotel', 'Hôtel', 'Hôtel · TGBT', 'Local technique du rez-de-chaussée, fermé à clé.', 'Seulement une personne habilitée, avec l’accord du responsable.', 'Le disjoncteur général et un départ par zone. Couper un départ coupe toute la zone.'],
+  ['floor', 'Étage 2', 'Étage 2 · tableau d’étage', 'Gaine technique du couloir de l’étage 2.', 'Le technicien, avec l’accord du responsable : un départ coupe deux chambres.', 'Un interrupteur général d’étage, un départ par paire de chambres, l’éclairage du couloir et les prises de service.'],
+  ['room', 'Chambre 214', 'Chambre 214 · tableau de chambre', 'Placard de l’entrée de la chambre.', 'Le technicien. Pour ouvrir ce tableau, on consigne en amont : le départ A, au tableau d’étage.', 'Le relais du porte-carte, le différentiel 30 mA, puis un disjoncteur par circuit.']
+];
+const AE_HINT = {
+  hotel: 'Touche un disjoncteur pour le couper ou le réarmer, ou la case « Étage 2 » pour descendre d’un niveau.',
+  floor: 'Touche un disjoncteur pour le couper ou le réarmer, ou la chambre 214 pour ouvrir son tableau.',
+  room: 'Touche le différentiel, un disjoncteur ou la carte. La tension aux bornes d’arrivée s’affiche en haut du tableau.'
+};
+function aeInit(){return {q0:true,q1:true,q2:true,q3:true,q4:true,ig:true,depA:true,depB:true,cou:true,svc:true,card:true,diff:true,bl:true,bp:true,bc:true,lock:null,open:false,msg:null,kind:'info'};}
+function aeLive(s){
+  const L={};
+  L.tgbt=s.q0; L.rdc=L.tgbt&&s.q1; L.et1=L.tgbt&&s.q2; L.et2in=L.tgbt&&s.q3; L.serv=L.tgbt&&s.q4;
+  L.et2=L.et2in&&s.ig; L.depA=L.et2&&s.depA; L.depB=L.et2&&s.depB; L.cou=L.et2&&s.cou; L.svc=L.et2&&s.svc;
+  L.roomIn=L.depA; L.relay=L.roomIn&&s.card; L.diff=L.relay&&s.diff;
+  L.bl=L.diff&&s.bl; L.bp=L.diff&&s.bp; L.bc=L.diff&&s.bc;
+  return L;
 }
-function atelierToggleElectrical(c){
-  if(!atelier.elec) atelier.elec={hotel:true,floor:true,room:true,light:true,sockets:true,clim:true};
-  if(c==='hotel'){atelier.elec.hotel=!atelier.elec.hotel;if(!atelier.elec.hotel){atelier.elec.floor=false;atelier.elec.room=false;}}
-  else if(c==='floor'){if(!atelierElecOn('hotel')){atelier.blocked.push(c);return;}atelier.elec.floor=!atelier.elec.floor;if(!atelier.elec.floor)atelier.elec.room=false;}
-  else if(c==='room'){if(!atelierElecOn('floor')){atelier.blocked.push(c);return;}atelier.elec.room=!atelier.elec.room;}
-  else {if(!atelierElecOn('room')){atelier.blocked.push(c);return;}atelier.elec[c]=!atelier.elec[c];}
+/* Ce qui alimente chaque appareil (pour dire « pas de courant en amont »). */
+const AE_UP={q0:()=>true,q1:L=>L.tgbt,q2:L=>L.tgbt,q3:L=>L.tgbt,q4:L=>L.tgbt,ig:L=>L.et2in,depA:L=>L.et2,depB:L=>L.et2,cou:L=>L.et2,svc:L=>L.et2,card:L=>L.roomIn,diff:L=>L.relay,bl:L=>L.diff,bp:L=>L.diff,bc:L=>L.diff};
+/* Appareil coupé le plus proche en amont de la chambre 214 : c’est là que va le cadenas. */
+function aeCutPoint(s){return ['depA','ig','q3','q0'].find(k=>!s[k])||null;}
+function aeSay(msg,kind){atelier.ae.msg=msg;atelier.ae.kind=kind||'info';}
+function aeToggle(id){
+  const s=atelier.ae, d=AE_DEV[id]; if(!d)return;
+  if(s.lock===id){atelier.blocked.push('lock-'+id);aeSay(`Condamné par ton cadenas : on ne réarme pas un appareil consigné. Le cadenas se retire à la fin, avec « Refermer et remettre en service ».`,'bad');return;}
+  s[id]=!s[id];
+  const up=AE_UP[id](aeLive(s));
+  let msg=s[id]?d.arm:d.cut;
+  if(s[id]&&!up) msg=`${id==='card'?'Carte insérée':'Réarmé'}, mais il n’y a pas de courant en amont : rien ne change pour l’instant.`;
+  else if(!s[id]&&!up) msg+=' (Il n’y avait déjà plus de courant en amont.)';
+  if(d.lvl==='hotel'&&!s[id]) msg+=' Rappel : en vrai, on ne manœuvre pas le TGBT sans habilitation ni accord.';
+  aeSay(msg,s[id]?'good':'info');
+}
+function aeStep(id,m){
+  const s=atelier.ae, a=m.actions.find(x=>x[0]===id);
+  if(!a||atelier.done.includes(id))return;
+  const need=(a[3]||[]).filter(x=>!atelier.done.includes(x));
+  if(need.length){atelier.blocked.push(id);aeSay(`Pas encore : fais d’abord ${need.map(x=>'« '+m.actions.find(y=>y[0]===x)[1]+' »').join(' et ')}.`,'bad');return;}
+  const L=aeLive(s), cp=aeCutPoint(s);
+  const ok=(msg,kind)=>{atelier.done.push(id);aeSay(msg,kind||'good');if(atelier.done.length===m.actions.length)atelierComplete();};
+  const no=(msg)=>{atelier.blocked.push(id);aeSay(msg,'bad');};
+  switch(id){
+    case 'rep': return ok('Repérage : la chambre 214 est alimentée par le départ A du tableau d’étage 2 (avec la 212), lui-même alimenté par Q3 au TGBT. C’est le départ A qu’on coupera pour consigner.','info');
+    case 'cut':
+      if(L.roomIn){
+        if(!s.card||!s.diff||!s.bl||!s.bp||!s.bc) return no('Pas suffisant : ce que tu as coupé est dans le tableau de la chambre, ses bornes d’arrivée restent sous tension. Pour ouvrir le tableau, coupe en amont : le départ A, au tableau d’étage.');
+        return no('La chambre est encore alimentée. Sur le schéma, va au tableau d’étage et coupe le départ qui alimente la chambre 214.');
+      }
+      return ok(`Bornes d’arrivée hors tension : la chambre est coupée par ${AE_DEV[cp].short}.`+(cp==='depA'?' Bon point de coupure : au plus près, on ne prive que la 212 et la 214.':' Ça marche, mais tu coupes plus large que nécessaire : au plus près, c’était le départ A du tableau d’étage.'));
+    case 'lock':
+      if(L.roomIn) return no('La chambre est de nouveau alimentée : recoupe le départ avant de condamner.');
+      s.lock=cp;
+      return ok(`Cadenas posé sur ${AE_DEV[cp].short}, avec une pancarte « Travaux en cours, ne pas manœuvrer ». Personne ne peut le réarmer.`+(cp==='depA'?' Préviens la réception : la 212 est coupée aussi.':''));
+    case 'vat':
+      if(L.roomIn) return no('VAT : 230 V aux bornes d’arrivée ! Ce n’est pas consigné.');
+      return ok('VAT testé sur une source sous tension, puis 0 V entre phase, neutre et terre aux bornes d’arrivée, puis VAT retesté : absence de tension vérifiée.');
+    case 'open':
+      s.open=true; atelier.aeView='room';
+      return ok('Plastron du tableau retiré : on voit les bornes d’arrivée, les conducteurs et le peigne. Tout est à 0 V.','info');
+    case 'measure':
+      return ok('Relevé noté : arrivée consignée (0 V) ; éclairage 16 A en 1,5 mm², prises 16 A en 1,5 mm², clim 20 A en 2,5 mm². Pas de trace de chauffe, serrages corrects.','info');
+    case 'close': {
+      const dev=s.lock; s.open=false; s.lock=null; if(dev) s[dev]=true;
+      const back=aeLive(s).roomIn;
+      return ok(`Plastron remis, cadenas retiré${dev?', '+AE_DEV[dev].short+' réarmé':''}.`+(back?' La chambre 214 est de nouveau alimentée : préviens la réception.':' Attention : la chambre n’est toujours pas alimentée, un autre appareil est encore coupé en amont.'));
+    }
+  }
+}
+/* ----- Dessin (fond papier, tableau à gauche, ce qu’il alimente à droite) ----- */
+const AE_SUB='#5b6468';
+function aeT(x,y,t,o){o=o||{};return `<text x="${x}" y="${y}" font-family="${o.mono?MONO:BODY}" font-size="${o.s||10.5}"${o.a?` text-anchor="${o.a}"`:''}${o.w?` font-weight="${o.w}"`:''} fill="${o.c||'#2c3438'}">${t}</text>`;}
+function aeW(d,live,w){
+  w=w||3;
+  return `<path d="${d}" fill="none" stroke="${live?'#d9822b':'#a9b0b3'}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"${live?'':' stroke-dasharray="5 5"'}/>`
+    +(live?`<path class="ae-flow" d="${d}" fill="none" stroke="#fff3df" stroke-width="${Math.max(1.2,w*.42).toFixed(1)}" stroke-linejoin="round" stroke-dasharray="3 9"/>`:'');
+}
+function aeBg(title,sub){
+  let g=`<rect width="400" height="340" fill="#f4f0e6"/>`;
+  for(let x=20;x<400;x+=20) g+=`<path d="M${x} 28V340" stroke="#e8e1d2" stroke-width=".8"/>`;
+  for(let y=48;y<340;y+=20) g+=`<path d="M0 ${y}H400" stroke="#e8e1d2" stroke-width=".8"/>`;
+  return g+`<rect width="400" height="28" fill="#2c3438"/>`+aeT(10,18.5,title,{s:11,mono:true,w:600,c:'#f3efe4'})+aeT(392,18.5,sub,{s:9.5,a:'end',c:'#c3ccd0'});
+}
+function aePanel(y1,y2,title,open){
+  return `<rect x="8" y="${y1}" width="170" height="${y2-y1}" rx="8" fill="${open?'#e6eae8':'#ffffff'}" stroke="#7d878b" stroke-width="1.5"${open?' stroke-dasharray="6 4"':''}/>`+aeT(172,y2-6,title,{s:8.5,a:'end',mono:true,w:600,c:'#6b7478'});
+}
+function aeLock(x,y){return `<g transform="translate(${x} ${y})"><path d="M2 6V3.5a4 4 0 0 1 8 0V6" fill="none" stroke="#7a5d22" stroke-width="2"/><rect x="0" y="6" width="12" height="10" rx="2" fill="#e2a541" stroke="#7a5d22"/><circle cx="6" cy="11" r="1.4" fill="#5a3f10"/></g>`;}
+/* Disjoncteur modulaire debout : levier en haut (I) = enclenché, en bas (O) = coupé. */
+function aeMod(id,cx,y,w,h,s){
+  const on=!!s[id], lk=s.lock===id, x=cx-w/2, ly=on?y+5:y+h-23;
+  let g=`<rect x="${x-7}" y="${y-5}" width="${w+14}" height="${h+10}" fill="transparent"/>`;
+  g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3.5" fill="#ffffff" stroke="#6f797d" stroke-width="1.3"/>`;
+  g+=`<rect x="${cx-4.5}" y="${y+5}" width="9" height="${h-17}" rx="2.5" fill="#2b3135"/>`;
+  g+=`<rect x="${cx-6.5}" y="${ly}" width="13" height="11" rx="2" fill="#56626a" stroke="#161b1e" stroke-width=".8"/>`+aeT(cx,ly+8.5,on?'I':'O',{s:7.5,a:'middle',mono:true,w:700,c:'#ffffff'});
+  g+=`<rect x="${cx-5.5}" y="${y+h-9}" width="11" height="5" rx="1.5" fill="${on?'#3fae7a':'#e05a4a'}"/>`;
+  if(lk) g+=aeLock(x+w+2,y);
+  return `<g class="hotspot" tabindex="0" role="button" data-aeb="${id}" aria-label="${esc(AE_DEV[id].name+' : '+(on?'enclenché':'coupé')+(lk?', condamné par ton cadenas':''))}">${g}</g>`;
+}
+/* Une rangée de départ : jeu de barres (x=22) → disjoncteur → ligne vers la case de droite (y = yt+40). */
+function aeRow(id,yt,s,feed,live,name,cal){
+  const lx=s.lock===id?84:68;
+  return aeW(`M22 ${yt-3}H50V${yt}`,feed,2.6)+aeMod(id,50,yt,24,34,s)
+    +aeT(lx,yt+13,name,{s:10.5,w:700})+aeT(lx,yt+26,cal,{s:9.5,mono:true,c:AE_SUB})
+    +aeW(`M50 ${yt+34}V${yt+40}H190`,live,2.8);
+}
+function aeBox(y,live,title,sub,icons,o){
+  o=o||{};
+  let g=`<rect x="190" y="${y-19}" width="202" height="38" rx="6" fill="${live?'#fff6dc':'#dedcd5'}" stroke="${o.path?'#c98a1e':live?'#cfae62':'#a3a8aa'}" stroke-width="${o.path?2.2:1.3}"/>`;
+  if(title) g+=aeT(198,y-3,title,{s:10.5,w:700})+aeT(198,y+11,sub,{s:9,c:AE_SUB});
+  return g+(icons||'');
+}
+const aeWin=(x,y,n,lit)=>Array.from({length:n},(_,k)=>`<rect x="${x+k*12}" y="${y-6}" width="8" height="11" rx="1.5" fill="${lit?'#ffd45c':'#4f575b'}" stroke="#8a7a52" stroke-width=".7"/>`).join('');
+const aeBaes=(x,y,on)=>on
+  ?`<rect x="${x}" y="${y-5}" width="20" height="10" rx="2" fill="#2fd27a" stroke="#1f8a4f" stroke-width="1"/><path d="M${x+5} ${y}h9m-3 -3l3 3l-3 3" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`
+  :`<rect x="${x}" y="${y-5}" width="20" height="10" rx="2" fill="#f7f7f3" stroke="#9aa59e" stroke-width="1"/><circle cx="${x+15}" cy="${y}" r="1.8" fill="#2fd27a"/>`;
+const aeLamp=(x,y,lit)=>(lit?`<circle cx="${x}" cy="${y}" r="12" fill="#ffe27a" opacity=".35"/>`:'')+`<circle cx="${x}" cy="${y}" r="6" fill="${lit?'#ffd23f':'#59636a'}" stroke="${lit?'#b98a12':'#3b4246'}" stroke-width="1.2"/>`;
+const aeSock=(x,y)=>`<rect x="${x-9}" y="${y-9}" width="18" height="18" rx="4" fill="#ffffff" stroke="#6f797d" stroke-width="1.2"/><circle cx="${x-3.5}" cy="${y}" r="1.8" fill="#2b3135"/><circle cx="${x+3.5}" cy="${y}" r="1.8" fill="#2b3135"/>`;
+const aeDrill=(x,y)=>`<circle cx="${x}" cy="${y}" r="8.5" fill="#e2a541" stroke="#7a5d22"/>`+aeT(x,y+4,'›',{s:13,a:'middle',w:700,c:'#1c1406'});
+function aeFan(x,y,on){
+  return `<rect x="${x-20}" y="${y-9}" width="40" height="18" rx="3" fill="#ffffff" stroke="#6f797d" stroke-width="1.2"/><g${on?' class="ae-spin"':''}><circle cx="${x-8}" cy="${y}" r="6" fill="#e3e7e8" stroke="#6f797d"/><path d="M${x-8} ${y-5}V${y+5}M${x-13} ${y}H${x-3}" stroke="${on?'#2c8fc7':'#8d969a'}" stroke-width="1.6"/></g><path d="M${x+2} ${y-4}h14M${x+2} ${y}h14M${x+2} ${y+4}h14" stroke="#9aa3a6"/>`;
+}
+function aeSceneHotel(s,L){
+  let o=aeBg('HÔTEL · TGBT','local technique, rez-de-chaussée');
+  o+=`<circle cx="36" cy="38" r="7.5" fill="#ffffff" stroke="#2c3438" stroke-width="1.4"/><path d="M37.5 33l-4 6h3.5l-2 5" fill="none" stroke="#d9822b" stroke-width="1.8" stroke-linejoin="round"/>`;
+  o+=aeT(50,42,'arrivée du réseau (compteur Enedis)',{s:9.5,c:AE_SUB});
+  o+=aePanel(50,334,'TGBT',false)+aeW('M36 45.5V56',true,3);
+  const hx=s.lock==='q0'?74:58;
+  o+=aeMod('q0',36,56,28,44,s)+aeT(hx,74,'Q0 · général',{s:10.5,w:700})+aeT(hx,87,'250 A',{s:9.5,mono:true,c:AE_SUB});
+  o+=aeW('M36 100V108H22V263',L.tgbt,4.5);
+  [['q1',116,'Q1 · RDC','63 A',L.rdc],['q2',166,'Q2 · étage 1','63 A',L.et1],['q3',216,'Q3 · étage 2','63 A',L.et2in],['q4',266,'Q4 · services','100 A',L.serv]].forEach(([id,yt,n,c,live])=>{o+=aeRow(id,yt,s,L.tgbt,live,n,c);});
+  o+=aeBox(156,L.rdc,'Rez-de-chaussée','accueil, petit-déjeuner',aeWin(318,156,3,L.rdc)+aeBaes(362,156,!L.rdc));
+  o+=aeBox(206,L.et1,'Étage 1','chambres 112 à 118',aeWin(306,206,4,L.et1)+aeBaes(362,206,!L.et1));
+  o+=`<g class="hotspot" tabindex="0" role="button" data-aeview="floor" aria-label="Ouvrir le tableau de l’étage 2">`+aeBox(256,L.et2,'Étage 2','chambres 212 à 218',aeWin(296,256,4,L.et2)+aeBaes(346,256,!L.et2)+aeDrill(380,256),{path:true})+`</g>`;
+  o+=aeBox(306,L.serv,'Services','cuisine, chaufferie, ascenseur',aeWin(330,306,2,L.serv)+aeBaes(362,306,!L.serv));
+  return o;
+}
+function aeSceneFloor(s,L){
+  let o=aeBg('ÉTAGE 2 · TABLEAU D’ÉTAGE','gaine technique du couloir');
+  o+=`<g class="hotspot" tabindex="0" role="button" data-aeview="hotel" aria-label="Remonter au TGBT">`+`<rect x="30" y="30" width="190" height="18" fill="transparent"/>`+aeT(46,42,'arrivée depuis le TGBT (Q3) ↑',{s:9.5,c:AE_SUB})+`</g>`;
+  o+=aePanel(50,334,'TABLEAU D’ÉTAGE',false)+aeW('M36 28V56',L.et2in,3);
+  const hx=s.lock==='ig'?74:58;
+  o+=aeMod('ig',36,56,28,44,s)+aeT(hx,74,'IG · général d’étage',{s:10.5,w:700})+aeT(hx,87,'63 A',{s:9.5,mono:true,c:AE_SUB});
+  o+=aeW('M36 100V108H22V263',L.et2,4.5);
+  [['depA',116,'Départ A','40 A',L.depA],['depB',166,'Départ B','40 A',L.depB],['cou',216,'Couloir','10 A',L.cou],['svc',266,'Service','16 A',L.svc]].forEach(([id,yt,n,c,live])=>{o+=aeRow(id,yt,s,L.et2,live,n,c);});
+  const room=(x,y,num,live,lit,drill)=>{
+    const g=`<rect x="${x}" y="${y-14}" width="94" height="28" rx="4" fill="${live?'#fff1c2':'#d2d2cc'}" stroke="${drill?'#c98a1e':'#b8a46a'}" stroke-width="${drill?1.8:1}"/>`+aeT(x+8,y+4,'Ch. '+num,{s:10,w:700})+aeLamp(x+(drill?58:76),y,lit)+(drill?aeDrill(x+80,y):'');
+    return drill?`<g class="hotspot" tabindex="0" role="button" data-aeview="room" aria-label="Ouvrir le tableau de la chambre 214">${g}</g>`:g;
+  };
+  o+=aeBox(156,L.depA,'','')+room(194,156,'212',L.depA,L.depA,false)+room(294,156,'214',L.depA,L.bl,true);
+  o+=aeBox(206,L.depB,'','')+room(194,206,'216',L.depB,L.depB,false)+room(294,206,'218',L.depB,L.depB,false);
+  o+=aeBox(256,L.cou,'Couloir','3 plafonniers',aeLamp(304,256,L.cou)+aeLamp(326,256,L.cou)+aeLamp(348,256,L.cou)+aeBaes(364,256,!L.cou));
+  o+=aeBox(306,L.svc,'Prises de service','aspirateur du ménage',aeSock(368,306));
+  return o;
+}
+function aeSceneRoom(s,L){
+  let o=aeBg('CHAMBRE 214 · TABLEAU DE CHAMBRE','placard de l’entrée');
+  o+=`<g class="hotspot" tabindex="0" role="button" data-aeview="floor" aria-label="Remonter au tableau d’étage">`+`<rect x="30" y="29" width="200" height="15" fill="transparent"/>`+aeT(46,40,'arrivée depuis l’étage (départ A) ↑',{s:9.5,c:AE_SUB})+`</g>`;
+  o+=aePanel(44,338,s.open?'PLASTRON RETIRÉ':'TABLEAU DE CHAMBRE',s.open)+aeW('M36 28V48',L.roomIn,3);
+  // bornes d’arrivée et tension mesurée
+  o+=`<rect x="20" y="48" width="32" height="14" rx="2.5" fill="#e3e1da" stroke="#8d969a"/>`+[26,36,46].map(x=>`<circle cx="${x}" cy="55" r="2.4" fill="#8f979b"/>`).join('');
+  o+=aeT(58,58,'bornes d’arrivée',{s:9,c:AE_SUB});
+  o+=L.roomIn?`<rect x="140" y="49" width="34" height="12" rx="6" fill="#f4b860" stroke="#b5741c"/>`+aeT(157,58,'230 V',{s:8,a:'middle',mono:true,w:700,c:'#4a2a06'})
+    :`<rect x="140" y="49" width="34" height="12" rx="6" fill="#d9e6dc" stroke="#6f9a7b"/>`+aeT(157,58,'0 V',{s:8,a:'middle',mono:true,w:700,c:'#244a2e'});
+  if(s.open) o+=`<path d="M29 62V70M29 104V112" stroke="#8a5a2b" stroke-width="2.4"/><path d="M43 62V70M43 104V112" stroke="#2f6fb0" stroke-width="2.4"/>`;
+  else o+=aeW('M36 62V70',L.roomIn,3)+aeW('M36 104V112',L.relay,3);
+  // relais du porte-carte et carte
+  o+=`<rect x="24" y="70" width="24" height="34" rx="3.5" fill="#ffffff" stroke="#6f797d" stroke-width="1.3"/><circle cx="36" cy="83" r="5" fill="${L.relay?'#3fae7a':'#59636a'}" stroke="#1f2427"/>`+aeT(36,99,'R',{s:8,a:'middle',mono:true,w:700,c:AE_SUB});
+  o+=aeT(56,81,'Relais porte-carte',{s:10.5,w:700});
+  o+=`<g class="hotspot" tabindex="0" role="button" data-aeb="card" aria-label="${esc(s.card?'Retirer la carte du porte-carte':'Insérer la carte dans le porte-carte')}"><rect x="52" y="85" width="122" height="20" fill="transparent"/>`
+    +(s.card?`<rect x="56" y="88" width="22" height="14" rx="2" fill="#e2a541" stroke="#7a5d22"/>`+aeT(67,98,'214',{s:7,a:'middle',mono:true,w:700,c:'#1c1406'}):`<rect x="56" y="88" width="22" height="14" rx="2" fill="none" stroke="#9aa1a4" stroke-dasharray="3 2"/>`)
+    +aeT(84,99,s.card?'carte insérée':'pas de carte',{s:9.5,c:AE_SUB})+`</g>`;
+  // différentiel
+  o+=aeMod('diff',36,112,28,44,s)+`<rect x="40" y="141" width="6" height="6" rx="1" fill="#f2c94c" stroke="#9c7a1d" stroke-width=".6"/>`;
+  o+=aeT(58,130,'ID · différentiel',{s:10.5,w:700})+aeT(58,143,'30 mA',{s:9.5,mono:true,c:AE_SUB});
+  o+=aeW('M36 156V164H22V269',L.diff,4.5);
+  if(s.open) o+=`<text transform="rotate(-90 15 222)" x="15" y="222" text-anchor="middle" font-family="${BODY}" font-size="8" fill="${AE_SUB}">peigne</text>`;
+  [['bl',172,'Éclairage','16 A',L.bl],['bp',222,'Prises','16 A',L.bp],['bc',272,'Clim','20 A',L.bc]].forEach(([id,yt,n,c,live])=>{o+=aeRow(id,yt,s,L.diff,live,n,c);});
+  o+=aeBox(212,L.bl,'Éclairage','plafonnier, salle de bain',aeLamp(340,212,L.bl)+aeLamp(366,212,L.bl));
+  o+=aeBox(262,L.bp,'Prises','lit, bureau, salle de bain',aeSock(366,262));
+  o+=aeBox(312,L.bc,'Clim','ventilo-convecteur',aeFan(358,312,L.bc));
+  return o;
 }
 function atelierElectricalScene(){
-  const e=atelier.elec||{}, on=atelierElecOn, view=atelier.elecView||'room';
-  const ctl=(id,inner,label)=>`<g class="hotspot" tabindex="0" role="button" aria-label="${esc(label)}" data-aelect="${id}">${inner}</g>`;
-  const line=(a,b,active)=>`<path d="M${a} ${b}h62" stroke="${active?'#4cc38c':'#ef6152'}" stroke-width="7" class="${active?'wire':''}" fill="none"/>`;
-  const lamp=(x,y,label,active)=>`<g><circle cx="${x}" cy="${y}" r="18" fill="${active?'#fff0a8':'#4b5558'}" stroke="${active?'#e2a541':'#7d8789'}" stroke-width="3"/><text x="${x}" y="${y+38}" text-anchor="middle" font-size="12" fill="#26343a">${label}</text></g>`;
-  let svg='';
-  if(view==='room') svg=`<svg viewBox="0 0 680 340" role="img" aria-label="Plan électrique interactif de la chambre">
-    <rect width="680" height="340" fill="#d9c8ad"/><text x="28" y="34" font-size="18" fill="#26343a">CHAMBRE 214 · PLAN UNIFILAIRE</text>
-    <rect x="30" y="76" width="124" height="120" rx="10" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="92" y="101" text-anchor="middle" font-size="14" fill="#26343a">TABLEAU</text>
-    ${ctl('room',`<rect x="52" y="118" width="80" height="26" rx="4" fill="${on('room')?'#4cc38c':'#ef6152'}"/><text x="92" y="136" text-anchor="middle" font-size="11" fill="#14251b">CHAMBRE</text>`,'Disjoncteur général chambre')}
-    ${line(154,131,on('room'))}
-    ${ctl('light',`<rect x="216" y="92" width="118" height="48" rx="8" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="275" y="121" text-anchor="middle" font-size="13" fill="#26343a">ÉCLAIRAGE</text>`,'Disjoncteur éclairage')}
-    ${ctl('sockets',`<rect x="216" y="164" width="118" height="48" rx="8" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="275" y="193" text-anchor="middle" font-size="13" fill="#26343a">PRISES</text>`,'Disjoncteur prises')}
-    ${ctl('clim',`<rect x="216" y="236" width="118" height="48" rx="8" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="275" y="265" text-anchor="middle" font-size="13" fill="#26343a">CLIM</text>`,'Disjoncteur climatisation')}
-    ${line(334,116,on('light'))}${line(334,188,on('sockets'))}${line(334,260,on('clim'))}
-    ${lamp(460,116,'lampe',on('light'))}${lamp(460,188,'prise',on('sockets'))}<g><rect x="428" y="242" width="64" height="34" rx="7" fill="${on('clim')?'#b9e3f0':'#5a666a'}" stroke="#6d777a" stroke-width="3"/><path d="M440 259h40" stroke="${on('clim')?'#2786a5':'#879195'}" stroke-width="4" class="${on('clim')?'wire':''}"/><text x="460" y="300" text-anchor="middle" font-size="12" fill="#26343a">clim</text></g>
-    </svg>`;
-  else if(view==='floor') svg=`<svg viewBox="0 0 680 340" role="img" aria-label="Plan électrique interactif du couloir et de l’étage">
-    <rect width="680" height="340" fill="#d7c2a5"/><text x="28" y="34" font-size="18" fill="#26343a">COULOIR · DÉPART ÉTAGE 2</text>
-    <rect x="34" y="98" width="138" height="114" rx="10" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="103" y="126" text-anchor="middle" font-size="14" fill="#26343a">TABLEAU</text><text x="103" y="148" text-anchor="middle" font-size="14" fill="#26343a">D’ÉTAGE</text>
-    ${ctl('floor',`<rect x="68" y="168" width="70" height="24" rx="4" fill="${on('floor')?'#4cc38c':'#ef6152'}"/><text x="103" y="185" text-anchor="middle" font-size="11" fill="#14251b">DÉPART</text>`,'Disjoncteur départ couloir')}
-    ${line(172,180,on('floor'))}${[0,1,2].map((i)=>{const x=264+i*128, active=on('floor')&&on('room');return `${ctl('room',`<rect x="${x}" y="124" width="92" height="70" rx="8" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="${x+46}" y="151" text-anchor="middle" font-size="13" fill="#26343a">CH ${212+i*2}</text><circle cx="${x+46}" cy="174" r="9" fill="${active?'#4cc38c':'#ef6152'}"/>`,'Disjoncteur de chambre')} ${line(x-92,180,active)}`;}).join('')}
-    <path d="M220 180H648" stroke="#a78550" stroke-width="3" stroke-dasharray="5 8"/>
-    </svg>`;
-  else svg=`<svg viewBox="0 0 680 340" role="img" aria-label="Plan électrique général de l’hôtel">
-    <rect width="680" height="340" fill="#cfd9dc"/><text x="28" y="34" font-size="18" fill="#26343a">HÔTEL · DISTRIBUTION ÉLECTRIQUE GÉNÉRALE</text>
-    <rect x="34" y="112" width="130" height="112" rx="10" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="99" y="145" text-anchor="middle" font-size="16" fill="#26343a">TGBT</text><text x="99" y="168" text-anchor="middle" font-size="12" fill="#26343a">arrivée réseau</text>
-    ${ctl('hotel',`<rect x="66" y="184" width="66" height="24" rx="4" fill="${on('hotel')?'#4cc38c':'#ef6152'}"/><text x="99" y="201" text-anchor="middle" font-size="11" fill="#14251b">GÉNÉRAL</text>`,'Disjoncteur général hôtel')}
-    ${line(164,196,on('hotel'))}
-    ${['REZ-DE-CHAUSSÉE','ÉTAGE 1','ÉTAGE 2','SERVICES'].map((name,i)=>{const x=222+i*108,active=on('hotel');return `${ctl('floor',`<rect x="${x}" y="126" width="88" height="68" rx="8" fill="#f4f1e8" stroke="#6d777a" stroke-width="3"/><text x="${x+44}" y="151" text-anchor="middle" font-size="11" fill="#26343a">${name}</text><circle cx="${x+44}" cy="174" r="9" fill="${active?'#4cc38c':'#ef6152'}"/>`,'Disjoncteur de zone')} ${line(x-58,196,active)}`;}).join('')}
-    <text x="340" y="260" text-anchor="middle" font-size="13" fill="#26343a">Un départ coupé coupe toutes les charges en aval.</text>
-    </svg>`;
-  return `<div class="atelier-scene">${svg}<div class="atelier-legend"><span>🟢 sous tension</span><span>🔴 coupé</span><span>Cliquer un disjoncteur pour simuler la coupure</span></div></div>`;
+  const s=atelier.ae, L=aeLive(s), v=atelier.aeView||'room';
+  const svg=v==='hotel'?aeSceneHotel(s,L):v==='floor'?aeSceneFloor(s,L):aeSceneRoom(s,L);
+  const aria={hotel:'Schéma du TGBT de l’hôtel et de ses départs',floor:'Schéma du tableau d’étage 2 et de ce qu’il alimente',room:'Schéma du tableau de la chambre 214 et de ses circuits'}[v];
+  return `<div class="atelier-scene"><svg class="ae-svg" viewBox="0 0 400 340" role="img" aria-label="${aria}">${svg}</svg>`
+    +`<div class="atelier-legend ae-legend"><span><i class="ae-sw"></i>sous tension</span><span><i class="ae-sw dead"></i>hors tension</span><span>I enclenché · O coupé</span><span><i class="ae-baes"></i>bloc de secours allumé (sur batterie)</span><span>› ouvrir le niveau</span><span>calibres : exemple</span></div></div>`;
+}
+function aeCrumbs(L){
+  const live={hotel:true,floor:L.et2in,room:L.roomIn};
+  return `<nav class="ae-crumbs" aria-label="Niveau du schéma">${AE_LEVELS.map(([id,short],i)=>`${i?'<span class="ae-sep" aria-hidden="true">›</span>':''}<button type="button" class="ae-crumb${atelier.aeView===id?' on':''}" data-aeview="${id}"${atelier.aeView===id?' aria-current="page"':''}><i class="ae-dot${live[id]?' live':''}" aria-hidden="true"></i>${esc(short)}</button>`).join('')}</nav>`;
+}
+function aeLevelInfo(s,L){
+  const v=atelier.aeView, lv=AE_LEVELS.find(x=>x[0]===v);
+  let warn='';
+  if(v==='floor'&&!L.et2in) warn=`<div class="ae-warn"><span>Pas de courant à l’arrivée de ce tableau : ${!s.q0?'le général Q0':'le départ Q3'} est coupé au TGBT.</span><button type="button" class="btn small" data-aeview="hotel">Voir le TGBT</button></div>`;
+  if(v==='room'&&!L.roomIn){const cp=aeCutPoint(s), lvl=AE_DEV[cp].lvl;warn=`<div class="ae-warn"><span>Pas de courant aux bornes d’arrivée : ${esc(AE_DEV[cp].short)} est coupé${s.lock===cp?' et condamné par ton cadenas':''}.</span><button type="button" class="btn small" data-aeview="${lvl}">Voir ${lvl==='floor'?'le tableau d’étage':'le TGBT'}</button></div>`;}
+  return `<div class="ae-info"><h3>${esc(lv[2])}</h3><dl><dt>Où</dt><dd>${esc(lv[3])}</dd><dt>Qui intervient</dt><dd>${esc(lv[4])}</dd><dt>Ce qu’on y voit</dt><dd>${esc(lv[5])}</dd></dl></div>${warn}`;
 }
 function atelierRenderElectrical(m){
-  const views=[['room','Chambre 214'],['floor','Couloir / étage'],['hotel','Hôtel général']];
-  const complete=atelier.done.length===m.actions.length;
-  const steps=m.actions.map((a,i)=>{const ok=atelier.done.includes(a[0]),need=a[3]||[],available=need.every(x=>atelier.done.includes(x));return `<button class="atelier-step ${ok?'done':''} ${!available&&!ok?'locked':''}" ${ok?'disabled':''} data-aaction="${a[0]}"><span class="num">${ok?'✓':i+1}</span><span><b>${esc(a[1])}</b><small>${esc(a[2])}</small>${!available&&!ok?'<small>Action bloquée : réalise les prérequis.</small>':''}</span><span>${['cut','lock','vat'].includes(a[0])?'⚠️':''}</span></button>`;}).join('');
-  return `<div class="atelier-body"><div class="card"><p>${esc(m.intro)}</p><div class="progress"><i style="width:${Math.round(100*atelier.done.length/m.actions.length)}%"></i></div><small>${atelier.done.length}/${m.actions.length} gestes de sécurité · les plans ci-dessous sont simulés</small></div><div class="atelier-tabs">${views.map(v=>`<button class="btn ${atelier.elecView===v[0]?'primary':''}" data-eview="${v[0]}">${v[1]}</button>`).join('')}</div>${atelierElectricalScene()}<div class="atelier-alert"><b>Simulation pédagogique :</b> les voyants et charges changent dans l’application uniquement. En intervention réelle, appliquer les procédures de l’hôtel et l’habilitation adaptée.</div>${complete?`<div class="card atelier-success atelier-debrief"><h3>Débrief</h3><p><b>Étapes réussies :</b> ${atelier.done.length}/${m.actions.length}</p><p><b>Erreurs rencontrées :</b> ${atelier.blocked.length?atelier.blocked.length+' tentative(s) bloquée(s)':'aucune'}</p><p><b>Points à revoir :</b> ${atelier.blocked.length?'la préparation et les prérequis de consignation.':'la vérification avant remise sous tension.'}</p></div>`:steps}${atelier.blocked.length?'<div class="atelier-alert">Une action ou une coupure a été refusée car elle ne respectait pas les prérequis.</div>':''}</div>`;
+  if(!atelier.ae) atelier.ae=aeInit();
+  if(!atelier.aeView) atelier.aeView='room';
+  const s=atelier.ae, L=aeLive(s), complete=atelier.done.length===m.actions.length;
+  const steps=m.actions.map((a,i)=>{const ok=atelier.done.includes(a[0]),need=a[3]||[],available=need.every(x=>atelier.done.includes(x));return `<button type="button" class="atelier-step ${ok?'done':''} ${!available&&!ok?'locked':''}" ${ok?'disabled':''} data-aestep="${a[0]}"><span class="num">${ok?'✓':i+1}</span><span><b>${esc(a[1])}</b><small>${esc(a[2])}</small>${!available&&!ok?'<small>À faire après les étapes précédentes.</small>':''}</span><span>${['cut','lock','vat'].includes(a[0])?'⚠️':''}</span></button>`;}).join('');
+  const msg=s.msg||AE_HINT[atelier.aeView];
+  return `<div class="atelier-body"><div class="card"><p>${esc(m.intro)}</p><p>Le schéma va de l’arrivée de l’hôtel jusqu’aux circuits de la chambre 214. Pour consigner, coupe sur le schéma au bon endroit, puis valide les gestes dans la liste.</p><div class="progress"><i style="width:${Math.round(100*atelier.done.length/m.actions.length)}%"></i></div><small>${atelier.done.length}/${m.actions.length} gestes de sécurité</small></div>`
+    +aeCrumbs(L)+atelierElectricalScene()+`<p class="ae-msg ${s.msg?s.kind:'info'}" aria-live="polite">${esc(msg)}</p>`+aeLevelInfo(s,L)
+    +`<div class="atelier-alert"><b>Simulation pédagogique :</b> les voyants et les charges changent dans l’application uniquement. En intervention réelle, appliquer les procédures de l’hôtel et l’habilitation adaptée.</div>`
+    +(complete?`<div class="card atelier-success atelier-debrief"><h3>Débrief</h3><p><b>Étapes réussies :</b> ${atelier.done.length}/${m.actions.length}</p><p><b>Gestes refusés :</b> ${atelier.blocked.length?atelier.blocked.length+' tentative(s)':'aucun'}</p><p><b>À retenir :</b> on coupe au plus près (départ A), on condamne l’appareil coupé, on vérifie au VAT aux bornes d’arrivée, et on prévient la réception.</p><button type="button" class="btn" data-aereplay>Rejouer l’exercice</button></div>`:`<h3>Gestes de consignation</h3>${steps}`)
+    +`</div>`;
 }
 function atelierScene(m){
   const d=(id,inner,label)=>`<g class="hotspot ${atelier.done.includes(id)?'done':''}" tabindex="0" role="button" aria-label="${esc(label)}" data-aaction="${id}">${inner}</g>`;
@@ -3093,15 +3330,20 @@ function atelierScore(m){return Math.round(100*m.quiz.filter((q,i)=>atelier.answ
 function atelierComplete(){const p=atelierRead();p[atelier.id]=Object.assign({},p[atelier.id],{exercise:true,quiz:p[atelier.id]?.quiz||0});atelierWrite(p);}
 function atelierWire(){ $('mode-atelier').addEventListener('click',atelierShow);$('atelier-home').addEventListener('click',()=>{renderStart();show('start');});$('atelier-content').addEventListener('click',e=>{const b=e.target.closest('[data-am]');if(b)return atelierOpen(b.dataset.am);const tab=e.target.closest('[data-atab]');if(tab){atelier.tab=tab.dataset.atab;atelierRender();return;}if(e.target.closest('[data-aback]'))return atelierRenderList();if(e.target.closest('[data-areplay]')){atelier.done=[];atelier.blocked=[];atelier.tab='act';atelierRender();return;}if(e.target.closest('[data-aquiz-retry]')){atelier.answers={};atelier.submitted=false;atelierRender();return;}const a=e.target.closest('[data-aaction]');if(a&&!a.disabled){const m=ATELIER_MODULES.find(x=>x.id===atelier.id),x=m.actions.find(y=>y[0]===a.dataset.aaction),need=x[3]||[];if(!need.every(y=>atelier.done.includes(y))){atelier.blocked.push(x[0]);atelierRender();return;}atelier.done.push(x[0]);if(atelier.done.length===m.actions.length)atelierComplete();atelierRender();}});$('atelier-content').addEventListener('change',e=>{if(e.target.matches('input[type=radio]')){atelier.answers[Number(e.target.name.slice(1))]=Number(e.target.value);atelierRender();}});$('atelier-content').addEventListener('submit',e=>{if(e.target.id!=='atelier-quiz')return;e.preventDefault();const m=ATELIER_MODULES.find(x=>x.id===atelier.id),score=atelierScore(m),p=atelierRead();p[atelier.id]=Object.assign({},p[atelier.id],{quiz:Math.max(score,p[atelier.id]?.quiz||0)});atelierWrite(p);atelier.submitted=true;atelierRender();});}
 function atelierElectricalWire(){
-  $('atelier-content').addEventListener('click',e=>{
-    const view=e.target.closest('[data-eview]');
-    if(view){atelier.elecView=view.dataset.eview;atelierRender();return;}
-    const control=e.target.closest('[data-aelect]');
-    if(control){atelierToggleElectrical(control.dataset.aelect);atelierRender();}
-  });
-  $('atelier-content').addEventListener('keydown',e=>{
-    if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-aelect]')){e.preventDefault();atelierToggleElectrical(e.target.closest('[data-aelect]').dataset.aelect);atelierRender();}
-  });
+  const root=$('atelier-content');
+  const act=(el)=>{
+    const m=ATELIER_MODULES.find(x=>x.id===atelier.id); if(!m||m.id!=='elec')return;
+    let focus=null;
+    if(el.dataset.aeview){atelier.aeView=el.dataset.aeview;if(atelier.ae)atelier.ae.msg=null;focus=`[data-aeview="${el.dataset.aeview}"].ae-crumb`;}
+    else if(el.dataset.aeb){aeToggle(el.dataset.aeb);focus=`[data-aeb="${el.dataset.aeb}"]`;}
+    else if(el.dataset.aestep){aeStep(el.dataset.aestep,m);}
+    else if(el.hasAttribute('data-aereplay')){atelier.done=[];atelier.blocked=[];atelier.ae=aeInit();atelier.aeView='room';}
+    else return;
+    atelierRender();
+    if(focus&&el.matches(':focus-visible')){const f=root.querySelector(focus);if(f)f.focus({preventScroll:true});}
+  };
+  root.addEventListener('click',e=>{const el=e.target.closest('[data-aeview],[data-aeb],[data-aestep],[data-aereplay]');if(el&&!el.disabled)act(el);});
+  root.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const el=e.target.closest&&e.target.closest('svg [data-aeview],svg [data-aeb]');if(el){e.preventDefault();act(el);}});
 }
 
 function boot(data) {

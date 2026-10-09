@@ -1,4 +1,4 @@
-const CACHE = 'chambre-214-v9';
+const CACHE = 'chambre-214-v10';
 const ASSETS = ['./', './index.html', './demontage.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
