@@ -1535,6 +1535,11 @@
     D.last = 0;
     if (!D.raf) D.raf = requestAnimationFrame(frame);
   }
+  /* Ouvre directement un appareil et une pièce (utilisé par l’onglet « Comprendre » de l’Atelier). */
+  function openAt(tab, part) {
+    if (APPS[tab]) { D.tab = tab; D.sel = part && APPS[tab].parts[part] ? part : null; D.msg = null; }
+    open();
+  }
 
   document.getElementById('mode-demo').addEventListener('click', open);
   document.getElementById('demo-home').addEventListener('click', () => { renderStart(); show('start'); });
@@ -1552,5 +1557,5 @@
     if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(p.dataset.part); }
   });
 
-  window.__ch214demo = { D, APPS, open, doAct, render };
+  window.__ch214demo = { D, APPS, open, openAt, doAct, render };
 })();
