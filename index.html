@@ -191,6 +191,11 @@ h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;text-
 .feed.bad{border-color:var(--fault)}
 .say{background:var(--paper);color:var(--paper-ink);border-radius:12px 12px 12px 2px;padding:8px 12px;font-size:15px;justify-self:start;max-width:92%}
 .say b{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;display:block;color:#6a5a3a}
+.trline{display:grid;gap:4px;justify-items:start;margin-top:6px}
+.trbtn{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--brass);background:transparent;color:var(--brass);border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer}
+.say .trbtn{color:#6a5a3a;border-color:#6a5a3a}
+.fr{font-style:italic;color:var(--dim)}
+.say .fr{color:#6a5a3a}
 details.journal{background:var(--slab);border:1px solid var(--rule);border-radius:var(--r);padding:10px 14px}
 details.journal summary{cursor:pointer;font-weight:700}
 .log{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
@@ -328,6 +333,7 @@ details.journal summary{cursor:pointer;font-weight:700}
         <li>Les pièces de rechange sont au local technique, au bout du couloir. Pense à les prendre avant de monter sur l’escabeau.</li>
         <li>Démonter un appareil sous tension arrête la partie. Couper, condamner, vérifier au VAT.</li>
         <li>Le client attend : parle-lui, explique-lui. Son humeur compte dans ta note.</li>
+        <li>Certains clients sont des touristes anglais. Si tu bloques, appuie sur « Traduire » pour voir la phrase en français.</li>
       </ul>
     </div>
     <p class="note">Entraînement au raisonnement de dépannage, d’après le guide « Maintenance en hôtel ». Il ne remplace ni la pratique sur place ni la formation d’habilitation.</p>
@@ -1082,9 +1088,93 @@ const PERSONAS = [
   { id: 'diallo', name: 'M. Diallo', coat: '#3d5a73', base: 75, hello: '« Bonjour ! Prenez votre temps, ça m’intéresse de voir comment ça marche. »', thanks: '« Ah, c’était donc ça. Merci pour l’explication ! »', wait: '« Vous avez trouvé quelque chose ? »' },
   { id: 'rossi', name: 'M. et Mme Rossi', coat: '#4f6b3a', base: 70, hello: '« Buongiorno ! Désolés pour le dérangement. »', thanks: '« Grazie mille ! Vous êtes un magicien. »', wait: '« Tout va bien ? »' },
   { id: 'weber', name: 'M. Weber', coat: '#5a4a6b', base: 50, hello: '« Dans un cinq étoiles, je ne m’attendais pas à ça. »', thanks: '« Bien. C’est réglé, c’est l’essentiel. »', wait: '« Je compte sur vous pour faire vite. »' },
-  { id: 'lefevre', name: 'Mme Lefèvre', coat: '#8a5a2b', base: 80, hello: '« Bonjour ! Toujours un plaisir de vous voir. »', thanks: '« Merci beaucoup, vous êtes un amour. »', wait: '« Je vous fais confiance. »' }
+  { id: 'lefevre', name: 'Mme Lefèvre', coat: '#8a5a2b', base: 80, hello: '« Bonjour ! Toujours un plaisir de vous voir. »', thanks: '« Merci beaucoup, vous êtes un amour. »', wait: '« Je vous fais confiance. »' },
+  /* Touristes anglophones : le texte français reste la source, la version anglaise est dans `en`. Le bouton « Traduire » affiche le français. */
+  { id: 'collins', name: 'Mr. Collins', lang: 'en', coat: '#2f5d62', base: 72, hello: '« Bonjour ! Désolé de vous déranger. »', thanks: '« Parfait, merci beaucoup ! »', wait: '« Tout va bien ? »',
+    en: { hello: '“Hello! Sorry to bother you.”', thanks: '“Brilliant, thank you so much!”', wait: '“Is everything alright?”' } },
+  { id: 'parker', name: 'Ms. Parker', lang: 'en', coat: '#6b3f2a', base: 55, hello: '« Enfin ! J’ai un avion à prendre ce soir. »', thanks: '« Super, merci. Vous m’avez sauvé la soirée ! »', wait: '« Ça va encore prendre longtemps ? »',
+    en: { hello: '“Finally! I have a flight to catch tonight.”', thanks: '“Great, thanks. You saved my evening!”', wait: '“How much longer is this going to take?”' } }
 ];
 const RESULTS = [['fixed', 'Réparé et testé'], ['passed', 'Sécurisé, transmis au responsable'], ['notfixed', 'Pas résolu']];
+
+/* ===== Version anglaise des demandes (clients anglophones) =====
+   Clé = phrase française d'origine, valeur = phrase anglaise. Le bouton « Traduire » réaffiche la phrase française. */
+const EN_LINES = {
+  '« D’accord, merci. »': '“Okay, thank you.”',
+  '« D’accord. Merci de m’avoir tenu au courant. »': '“Okay. Thank you for keeping me informed.”',
+  /* Électricité : plus de lumière */
+  '« Il y a dix minutes à peu près. »': '“About ten minutes ago.”',
+  '« Rien de spécial, je venais de rentrer. »': '“Nothing special, I had just come back.”',
+  '« Tout s’est coupé d’un coup quand j’ai lancé la bouilloire pour un thé. »': '“Everything went off at once when I switched on the kettle for a cup of tea.”',
+  '« Je faisais chauffer de l’eau, justement. »': '“I was boiling some water, actually.”',
+  '« Je suis rentrée, j’ai mis ma carte dans la fente comme d’habitude, et rien ne s’allume. »': '“I came in, put my card in the slot like I always do, and nothing turns on.”',
+  '« Elle était dans ma poche avec mon téléphone. »': '“It was in my pocket with my phone.”',
+  /* Électricité : salle de bain */
+  '« Depuis ce matin. Hier soir, ça marchait. »': '“Since this morning. It was working last night.”',
+  '« Non, j’ai juste appuyé sur l’interrupteur. »': '“No, I just pressed the switch.”',
+  '« La lumière de la salle de bain ne s’allume plus. Dans la chambre, tout marche. »': '“The bathroom light won’t turn on any more. Everything works in the bedroom.”',
+  '« La lumière de la salle de bain ne s’allume plus. Hier soir, elle clignotait un peu. »': '“The bathroom light won’t turn on any more. It was flickering a bit last night.”',
+  '« Plus de lumière dans la salle de bain. L’interrupteur fait un drôle de bruit mou. »': '“No light in the bathroom. The switch makes a funny soft noise.”',
+  /* Serrurerie */
+  '« Je reviens du restaurant, à l’instant. »': '“I’m just back from the restaurant, right now.”',
+  '« Ce matin, elle marchait très bien. »': '“This morning it worked perfectly.”',
+  '« Ma carte ne fait rien du tout : pas un bip, pas un voyant. »': '“My card does nothing at all: no beep, no light.”',
+  '« Ça bipe et ça clignote rouge. Pourtant, je suis là jusqu’à demain ! »': '“It beeps and flashes red. But I’m staying until tomorrow!”',
+  '« C’est vert, ça fait clic, mais la poignée ne descend pas. »': '“It goes green, it clicks, but the handle won’t go down.”',
+  /* Chasse d'eau */
+  '« Depuis cette nuit, on l’entend sans arrêt. »': '“Since last night, you can hear it all the time.”',
+  '« Non, rien de spécial. »': '“No, nothing special.”',
+  '« Ça coule en continu dans la cuvette, et on entend un petit sifflement toute la nuit. »': '“It keeps running into the toilet bowl, and there’s a little hissing sound all night.”',
+  '« Ça coule doucement dans la cuvette, et de temps en temps le réservoir se remplit tout seul. »': '“It trickles into the bowl, and every now and then the tank fills up by itself.”',
+  /* Fuite sous le lavabo */
+  '« Je l’ai vu ce matin en me levant. »': '“I saw it this morning when I got up.”',
+  '« Rien, j’ai juste utilisé le lavabo normalement. »': '“Nothing, I just used the sink normally.”',
+  '« Ce matin, il y avait de l’eau sous le meuble. Je n’avais même pas encore utilisé le lavabo. »': '“This morning there was water under the cabinet. I hadn’t even used the sink yet.”',
+  '« Dès que je me lave les mains, ça goutte sous le meuble. »': '“As soon as I wash my hands, it drips under the cabinet.”',
+  '« Ça goutte sous le meuble, surtout quand je vide le lavabo plein. »': '“It drips under the cabinet, especially when I empty a full sink.”',
+  /* Eau chaude */
+  '« Depuis hier soir. »': '“Since last night.”',
+  '« Rien. J’ai juste essayé de tourner plus fort. »': '“Nothing. I just tried turning it harder.”',
+  '« La douche ne dépasse pas le tiède, même tournée à fond. Au lavabo, l’eau est bien chaude. »': '“The shower never gets past lukewarm, even turned all the way up. At the sink, the water is properly hot.”',
+  '« L’eau de la douche est tiède. Pourtant, au lavabo, elle est bien chaude. »': '“The shower water is lukewarm. But at the sink, it’s properly hot.”',
+  '« L’eau est tiède partout, même au lavabo. Au petit-déjeuner, d’autres clients s’en plaignaient. »': '“The water is lukewarm everywhere, even at the sink. At breakfast, other guests were complaining about it.”',
+  /* Clim : il fait trop chaud */
+  '« Depuis que je suis rentré, il y a une heure. »': '“Since I came back, an hour ago.”',
+  '« J’ai essayé les boutons, sans succès. »': '“I tried the buttons, but with no luck.”',
+  '« Hier soir j’avais froid, alors j’ai monté le chauffage. Là, j’étouffe. »': '“Last night I was cold, so I turned the heating up. Now I’m boiling.”',
+  '« J’ai ouvert un peu pour aérer, mais il fait toujours aussi chaud. »': '“I opened the window a little for some fresh air, but it’s still just as hot.”',
+  '« La clim fait du bruit, mais on sent à peine l’air. »': '“The air conditioning is noisy, but you can hardly feel any air.”',
+  '« J’ai mis la clim à fond depuis une heure, et ça souffle chaud. »': '“I’ve had the air conditioning on full for an hour, and it’s blowing warm air.”',
+  /* Clim : ça goutte */
+  '« Depuis cette nuit. »': '“Since last night.”',
+  '« J’ai poussé la bouilloire, l’eau tombait juste à côté. »': '“I moved the kettle, the water was dripping right next to it.”',
+  '« Ça goutte du plafond, juste sur le bureau. »': '“It’s dripping from the ceiling, right onto the desk.”',
+  '« Ça goutte du plafond depuis cette nuit, et on entend comme un bip là-haut. »': '“It’s been dripping from the ceiling since last night, and I can hear a sort of beep up there.”',
+  '« Ça coule par gouttes du plafond, régulièrement, depuis ce matin. »': '“Drops keep falling from the ceiling, regularly, since this morning.”'
+};
+/* Appels du bipeur (la réception relaie la demande) */
+const CALL_EN = {
+  elec: (t) => `Room ${t.room}: no light anywhere. ${t.persona.name} is waiting in the corridor.`,
+  sdbled: (t) => `Room ${t.room}: the bathroom light won’t turn on any more.`,
+  porte: (t) => `Room ${t.room}: ${t.persona.name} can’t get in, the key card doesn’t work.`,
+  wc: (t) => `Room ${t.room}: the toilet has been running non-stop since this morning.`,
+  fuite: (t) => `Room ${t.room}: there is water under the sink cabinet.`,
+  ecs: (t) => `Room ${t.room}: the guest has no hot water in the shower.`,
+  clim: (t) => `Room ${t.room}: the guest is too hot, the air conditioning isn’t working.`,
+  goutte: (t) => `Room ${t.room}: water is dripping from the ceiling, near the air conditioning unit.`
+};
+const isEn = (t) => !!(t && t.persona && t.persona.lang === 'en');
+const callText = (t) => (isEn(t) && CALL_EN[t.demande.id]) ? CALL_EN[t.demande.id](t) : t.demande.call(t);
+/* Renvoie la phrase à afficher et, pour un client anglophone, la phrase française d'origine (pour « Traduire »). */
+function speak(say, t) {
+  if (!say || !isEn(t)) return { say, sayFr: '' };
+  const p = t.persona;
+  for (const k of ['hello', 'thanks', 'wait']) if (say === p[k]) return { say: p.en[k], sayFr: say };
+  if (EN_LINES[say]) return { say: EN_LINES[say], sayFr: say };
+  const m = /^« Tout s’est éteint d’un coup\. Mon voisin de la (\d+) est sorti/.exec(say);
+  if (m) return { say: `“Everything went off at once. My neighbour from room ${m[1]} came out: he has no light either.”`, sayFr: say };
+  return { say, sayFr: '' };
+}
 
 const DEMANDES = [
   {
@@ -2136,7 +2226,7 @@ function placeBubble(x, y) {
 /* ===== Moteur : service, tickets, déplacements, actions, affichage ===== */
 const START = 14 * 60;
 const ACTIONS = Object.assign({}, ACTIONS_A, ACTIONS_B);
-const PATIENCE = { garnier: 0.8, diallo: 0.3, rossi: 0.4, weber: 0.7, lefevre: 0.3 };
+const PATIENCE = { garnier: 0.8, diallo: 0.3, rossi: 0.4, weber: 0.7, lefevre: 0.3, collins: 0.4, parker: 0.7 };
 const ALLV = DEMANDES.flatMap((d) => d.variants.map((v) => d.id + ':' + v.id));
 const objName = (o, arg) => { const i = OBJ[o]; return i ? (typeof i[0] === 'function' ? i[0](arg) : i[0]) : ''; };
 const worldFor = (arg) => ROOMS.includes(arg) ? S.rooms[arg] : W();
@@ -2196,7 +2286,7 @@ function arrivals(silent) {
   if (rang && !silent) {
     sfx('pager');
     const b = $('btn-pager'); b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring');
-    toast('Bip ! ' + rang.demande.call(rang), 4500);
+    toast('Bip ! ' + callText(rang), 4500);
     if (!curOpen()) S.focus = rang.id;
   }
   return rang;
@@ -2259,7 +2349,8 @@ function runAction(base, arg, a, x, y, direct, forced, bypassTool = false) {
   });
   if (res.mood && t) t.moodAdj += res.mood;
   if (t) { if (t.startedAt == null) t.startedAt = t0; entry.done.forEach((d) => { t.done[d] = true; }); t.log.push(entry); }
-  S.feed = { text: res.text, kind: res.kind, say: res.say, who: t ? t.persona.name : '' };
+  const sp = speak(res.say, t);
+  S.feed = { text: res.text, kind: res.kind, say: sp.say, sayFr: sp.sayFr, showFr: false, who: t ? t.persona.name : '' };
   if (res.goto) { S.loc = { area: res.goto.area, room: res.goto.room || null, scene: res.goto.scene, zoom: null, arg: null }; sfx('step'); }
   if (res.zoom) { const z = typeof res.zoom === 'string' ? { z: res.zoom } : res.zoom; S.loc.zoom = z.z; S.loc.arg = z.arg || null; }
   if (res.fx) fx(res.fx, x, y);
@@ -2411,14 +2502,16 @@ function renderTicket() {
   const d = t.demande, m = mood(t), col = m >= 60 ? 'var(--ok)' : m >= 35 ? 'var(--brass)' : 'var(--fault)';
   const st = t.status === 'closed' ? ['Clos', ''] : t.fixedAt != null ? ['Réparé', 'ok'] : t.handledAt != null ? ['Transmis', 'ok'] : ['En cours', ''];
   el.innerHTML = `<div class="top"><span class="roomtag">${t.room}</span><div><span class="eyebrow">${esc(d.cat)} · ${hhmm(t.arriveAt)}</span><h2>${esc(d.title)}</h2></div><span class="state ${st[1]}">${st[0]}</span></div>
-    <p>${esc(d.call(t))}</p>
+    <p${isEn(t) ? ' lang="en"' : ''}>${esc(callText(t))}</p>
+    ${isEn(t) ? `<div class="trline"><button type="button" class="trbtn" data-tk="tr" aria-pressed="${t.showFr ? 'true' : 'false'}">${t.showFr ? 'Masquer' : 'Traduire'}</button>${t.showFr ? `<p class="fr" lang="fr">${esc(d.call(t))}</p>` : ''}</div>` : ''}
     <div class="mood"><span>${esc(t.persona.name)}</span><span class="track"><i style="width:${m}%;background:${col}"></i></span><span>humeur ${moodWord(m)}</span></div>
     ${t.status === 'open' ? '<div class="tbtns"><button class="btn small" data-tk="call">Appeler le responsable</button><button class="btn small primary" data-tk="close">Clore le ticket</button></div>' : ''}`;
 }
 function renderFeed() {
   const f = S.feed || { text: '', kind: 'info' }, el = $('feed');
   el.className = 'feed' + (f.kind === 'good' ? ' good' : f.kind === 'bad' ? ' bad' : '');
-  el.innerHTML = `<p>${esc(f.text)}</p>${f.say ? `<div class="say"><b>${esc(f.who || '')}</b>${esc(f.say)}</div>` : ''}${f.fixed ? `<p class="fixedline">${esc(f.fixed)}</p>` : ''}`;
+  const tr = f.sayFr ? `<div class="trline"><button type="button" class="trbtn" data-tr="say" aria-pressed="${f.showFr ? 'true' : 'false'}">${f.showFr ? 'Masquer' : 'Traduire'}</button>${f.showFr ? `<p class="fr" lang="fr">${esc(f.sayFr)}</p>` : ''}</div>` : '';
+  el.innerHTML = `<p>${esc(f.text)}</p>${f.say ? `<div class="say"${f.sayFr ? ' lang="en"' : ''}><b>${esc(f.who || '')}</b>${esc(f.say)}${tr}</div>` : ''}${f.fixed ? `<p class="fixedline">${esc(f.fixed)}</p>` : ''}`;
 }
 function renderLog() {
   const t = curTicket(), log = t ? t.log : [];
@@ -2661,7 +2754,8 @@ function wire() {
     const t = curTicket(); render();
     if (t && S.loc.area === 'couloir' && !S.loc.zoom) scrollToDoor(t.room);
   });
-  $('ticket').addEventListener('click', (e) => { const b = e.target.closest('[data-tk]'); if (!b) return; if (b.dataset.tk === 'call') callManager(); else renderBon(); });
+  $('ticket').addEventListener('click', (e) => { const b = e.target.closest('[data-tk]'); if (!b) return; if (b.dataset.tk === 'tr') { const t = curTicket(); if (t) { t.showFr = !t.showFr; renderTicket(); } return; } if (b.dataset.tk === 'call') callManager(); else renderBon(); });
+  $('feed').addEventListener('click', (e) => { const b = e.target.closest('[data-tr]'); if (!b || !S.feed) return; S.feed.showFr = !S.feed.showFr; renderFeed(); });
   $('btn-sound').addEventListener('click', () => {
     S.sound = !S.sound; $('btn-sound').setAttribute('aria-pressed', String(S.sound)); $('snd-wave').style.display = S.sound ? '' : 'none';
     try { localStorage.setItem('ch214-sound', S.sound ? '1' : '0'); } catch (e) { /* stockage indisponible */ }
