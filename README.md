@@ -32,4 +32,6 @@ L’accueil contient désormais un mode séparé **Atelier maintenance**, intég
 
 Chaque module comprend une partie Comprendre, une manipulation interactive avec prérequis, un quiz sécurité et un débrief. Les exercices principaux affichent un schéma animé et des zones cliquables : tableau avec coupure/condamnation/VAT, climatisation avec thermostat/filtre/condensats et chasse d’eau avec robinet/flotteur/clapet. Les autres modules utilisent également une scène de gestes cliquables. La progression est conservée dans le stockage local du navigateur et fonctionne hors connexion après le chargement de l’application. Le module électrique impose la logique **couper → condamner → vérifier au VAT** avant ouverture.
 
+Le module électrique propose aussi trois vues reliées : **Chambre 214**, **Couloir / étage** et **Hôtel général**. Cliquer un disjoncteur change l’état simulé du circuit et des charges en aval : un départ hôtel coupé éteint les étages, un départ d’étage coupé coupe les chambres et un départ chambre coupe les circuits éclairage/prises/climatisation. Il s’agit d’un plan pédagogique générique, pas du schéma réel d’un hôtel particulier.
+
 Cet atelier est un support pédagogique : il ne remplace ni une habilitation électrique, ni les procédures de l’hôtel, ni les notices fabricant, ni l’intervention d’une personne qualifiée.
