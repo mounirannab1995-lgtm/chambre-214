@@ -35,3 +35,13 @@ Chaque module comprend une partie Comprendre, une manipulation interactive avec 
 Le module électrique propose aussi trois vues reliées : **Chambre 214**, **Couloir / étage** et **Hôtel général**. Cliquer un disjoncteur change l’état simulé du circuit et des charges en aval : un départ hôtel coupé éteint les étages, un départ d’étage coupé coupe les chambres et un départ chambre coupe les circuits éclairage/prises/climatisation. Il s’agit d’un plan pédagogique générique, pas du schéma réel d’un hôtel particulier.
 
 Cet atelier est un support pédagogique : il ne remplace ni une habilitation électrique, ni les procédures de l’hôtel, ni les notices fabricant, ni l’intervention d’une personne qualifiée.
+
+## Mode Démontage
+
+L’accueil propose aussi un mode **Démontage** (« Voir, démonter, régler »), codé dans le fichier séparé `demontage.js`. Trois appareils y sont dessinés en vue en coupe animée, avec des pastilles numérotées : on touche une pièce pour lire son rôle, voir son état et la manipuler.
+
+- **Chasse d’eau** : réservoir posé sur la cuvette, mécanisme double chasse à cloche. Le cycle complet est animé (cloche, vidange, flotteur, robinet flotteur, remplissage, trop-plein). On ferme le robinet d’arrêt, on dévisse la bague du bouton, on soulève le couvercle, on dépose le mécanisme d’un quart de tour, on ouvre la tête du robinet flotteur. Réglages : hauteur de la butée du flotteur, volume de la petite chasse. Réparations : joint de cloche (nettoyage ou remplacement), filtre et membrane du robinet flotteur, test au colorant.
+- **Climatisation** : le ventilo-convecteur du jeu (faux plafond, installation 2 tubes). Thermostat (mode, consigne, ventilation), filtre, ventilateur, batterie, purgeur d’air, vanne et servomoteur, bac à condensats, pompe de relevage et son tuyau. Ouverture dans l’ordre (arrêt, escabeau, grille, trappe) et consignation avant le boîtier électrique (disjoncteur, cadenas, VAT).
+- **Tableau électrique** : porte-carte et relais, différentiel 30 mA avec bouton test, disjoncteurs éclairage, prises et clim, appareils à brancher. On voit le courant circuler, la surcharge faire chauffer le bilame, le différentiel couper sur un défaut d’isolement et le court-circuit couper instantanément.
+
+Les gestes dangereux ou dans le mauvais ordre sont refusés avec une explication. Chaque appareil propose une **Panne surprise** (vue réelle : on ne voit l’intérieur qu’après avoir ouvert) ou une panne précise à observer en coupe. Une liste de contrôle indique ce qu’il reste à faire pour clore l’intervention ; les pannes qui ne relèvent pas du technicien (pompe de relevage, bâtiment en chauffage) se sécurisent puis se signalent au responsable. Le temps est accéléré.

@@ -111,6 +111,86 @@ h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;text-
 .atelier-legend span{border:1px solid var(--rule);border-radius:999px;padding:3px 8px}
 .atelier-debrief li{margin-bottom:5px}
 
+/* Mode Démontage (logique dans demontage.js) : vue en coupe animée, pièces numérotées, réglages, pannes */
+.demo-card{border-color:#8a7442;background:linear-gradient(135deg,var(--slab),#2e2a1b)}
+.demo-card .tag{color:#f0c46b}
+.demo{display:grid;gap:12px}
+#demo-content{display:grid;gap:12px}
+.dm-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dm-tab{min-height:46px;border:1px solid var(--rule);background:var(--slab);border-radius:10px;font-weight:700;cursor:pointer;padding:6px 8px;line-height:1.15}
+.dm-tab[aria-selected="true"]{background:var(--brass);border-color:var(--brass);color:var(--brass-ink)}
+.dm-tab:focus-visible,.dm-chip:focus-visible,.dm-seg button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.dm-intro{margin:0;color:var(--dim);font-size:14px}
+.dm-stage{background:#0b1419;border:1px solid var(--rule);border-radius:var(--r);padding:8px;display:grid;gap:6px}
+.dm-svg{display:block;width:100%;height:auto;max-height:60vh;border-radius:8px;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.dm-now{margin:0;font-size:14.5px;padding:2px 4px;min-height:2.9em}
+.dm-hs{cursor:pointer;outline:none}
+.dm-hs .hit{stroke:transparent;stroke-width:2.2}
+.dm-hs:hover .hit{stroke:rgba(226,165,65,.6);stroke-dasharray:4 3}
+.dm-hs:focus-visible .hit,.dm-hs.sel .hit{stroke:var(--brass);stroke-dasharray:5 3}
+.dm-mk circle{fill:var(--brass);stroke:#1c1406;stroke-width:1.2}
+.dm-mk text{font:700 9.5px var(--f-mono);fill:#1c1406;pointer-events:none}
+.dm-hs.sel .dm-mk circle{fill:#fff3d6;stroke:var(--brass);stroke-width:2}
+.dm-status{display:flex;flex-wrap:wrap;gap:6px}
+.dm-stat{display:grid;border:1px solid var(--rule);background:var(--slab);border-radius:9px;padding:5px 10px;flex:1 1 auto}
+.dm-stat small{font:11px var(--f-mono);color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+.dm-stat b{font-size:14px}
+.dm-stat.ok b{color:var(--ok)}
+.dm-stat.warn{border-color:var(--brass)}.dm-stat.warn b{color:var(--brass)}
+.dm-stat.bad{border-color:var(--fault)}.dm-stat.bad b{color:var(--fault)}
+.dm-quick,.dm-acts,.dm-row,.dm-mbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dm-quick .btn[aria-pressed="true"]{border-color:var(--cool);color:var(--cool)}
+.dm-card{background:var(--slab);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;display:grid;gap:9px}
+.dm-card h3{font-size:21px}
+.dm-card p{margin:0}
+.dm-part-head{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.dm-num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--brass);color:var(--brass-ink);font:700 13px var(--f-mono)}
+.dm-state{font-size:14.5px}
+.dm-state .eyebrow{margin-right:6px}
+.dm-msg{border-left:3px solid var(--cool);padding:7px 10px;background:var(--slab2);border-radius:0 8px 8px 0;font-size:14.5px}
+.dm-msg.bad{border-left-color:var(--fault)}
+.dm-msg.good{border-left-color:var(--ok)}
+.dm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dm-chip{border:1px solid var(--rule);background:var(--slab2);border-radius:999px;padding:6px 12px;font-size:13.5px;cursor:pointer;min-height:38px;display:inline-flex;align-items:center;gap:6px}
+.dm-chip b{font-family:var(--f-mono);color:var(--brass)}
+.dm-chip.on{border-color:var(--brass)}
+.dm-allparts summary{cursor:pointer;color:var(--dim);font-size:14px;padding:6px 0;min-height:32px}
+.dm-part-empty{padding:10px 14px;gap:4px}
+.dm-part-empty>p{font-size:14.5px}
+.dm-allparts .dm-chips{margin-top:6px}
+.dm-adj{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding-top:9px;border-top:1px solid var(--rule)}
+.dm-adj small{display:block;color:var(--dim);font-size:13px}
+.dm-step{display:flex;align-items:center;gap:8px}
+.dm-step b{min-width:66px;text-align:center;font-family:var(--f-mono)}
+.dm-step .btn{min-width:46px;font-size:20px}
+.dm-seg{display:flex;flex-wrap:wrap;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.dm-seg button{border:0;border-right:1px solid var(--rule);background:var(--slab2);padding:8px 11px;min-height:42px;font-weight:700;font-size:13px;cursor:pointer}
+.dm-seg button:last-child{border-right:0}
+.dm-seg button.on{background:var(--cool);color:#06202c}
+.dm-seg button:disabled,.dm-step .btn:disabled{opacity:.45;cursor:not-allowed}
+.dm-how,.dm-gamme{margin:0;padding-left:22px;display:grid;gap:6px;font-size:14.5px}
+.dm-how li{color:var(--dim)}
+.dm-how li b{color:var(--text)}
+.dm-how li.on{color:var(--text)}
+.dm-how li.on b,.dm-how li.on::marker{color:var(--brass)}
+.dm-gamme li.done{color:var(--ok)}
+.dm-gamme li.done::after{content:" ✓"}
+.dm-checks{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.dm-checks li{position:relative;padding-left:30px;font-size:14.5px}
+.dm-checks li::before{content:"";position:absolute;left:0;top:1px;width:18px;height:18px;border:2px solid var(--rule);border-radius:5px}
+.dm-checks li.ok::before{background:var(--ok);border-color:var(--ok)}
+.dm-checks li.ok::after{content:"";position:absolute;left:7px;top:4px;width:5px;height:10px;border:solid #082016;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.dm-pick summary{list-style:none}
+.dm-pick summary::-webkit-details-marker{display:none}
+.dm-pick-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.dm-mission{background:linear-gradient(135deg,#2c2513,var(--slab));border:1px solid var(--brass);border-radius:var(--r);padding:12px 14px;display:grid;gap:9px}
+.dm-mission.ok{background:linear-gradient(135deg,#12352a,var(--slab));border-color:var(--ok)}
+.dm-mission h3{font-size:24px}
+.dm-mission p{margin:0}
+.dm-mission ol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14.5px}
+.dm-quote{background:var(--paper);color:var(--paper-ink);border-radius:12px 12px 12px 2px;padding:8px 12px;justify-self:start;font-size:15px}
+.dm-hint{border-left:3px solid var(--brass);padding-left:10px}
+
 /* Bandeau de jeu */
 .hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:8px;background:var(--night);padding-block:8px;border-bottom:1px solid var(--rule)}
 .iconbtn{position:relative;display:inline-grid;place-items:center;width:42px;height:42px;border-radius:10px;border:1px solid var(--rule);background:var(--slab);cursor:pointer}
@@ -320,6 +400,11 @@ details.journal summary{cursor:pointer;font-weight:700}
         <h3>Maintenance en chambre</h3>
         <p>Comprendre, manipuler et valider la sécurité sur sept situations hôtelières.</p>
       </button>
+      <button class="card demo-card" id="mode-demo">
+        <span class="tag">Mode Démontage</span>
+        <h3>Voir, démonter, régler</h3>
+        <p>Chasse d’eau, clim et tableau électrique en vue en coupe : regarde-les fonctionner, démonte, règle, répare.</p>
+      </button>
     </div>
     <div>
       <p class="eyebrow">Choisir une demande</p>
@@ -345,6 +430,15 @@ details.journal summary{cursor:pointer;font-weight:700}
       <button class="btn small" id="atelier-home">Accueil</button>
     </div>
     <div id="atelier-content"></div>
+  </section>
+
+  <section class="screen demo" id="scr-demo" hidden>
+    <div class="atelier-top">
+      <div><span class="eyebrow">Mode Démontage</span><h2>Voir, démonter, régler</h2></div>
+      <button class="btn small" id="demo-home">Accueil</button>
+    </div>
+    <div id="demo-content"></div>
+    <p class="note">Simulation pédagogique, temps accéléré. Elle ne remplace ni les notices des fabricants, ni les procédures de l’hôtel, ni une habilitation électrique.</p>
   </section>
 
   <section id="scr-play" hidden>
@@ -2533,7 +2627,7 @@ function renderBelt() {
 }
 /* ===== Écrans : accueil, bon d'intervention, débrief, bilan ; progression ; branchements ===== */
 function show(screen) {
-  ['start', 'play', 'bon', 'debrief', 'report', 'atelier'].forEach((s) => { $('scr-' + s).hidden = s !== screen; });
+  ['start', 'play', 'bon', 'debrief', 'report', 'atelier', 'demo'].forEach((s) => { $('scr-' + s).hidden = s !== screen; });
   S.screen = screen; $('belt').hidden = screen !== 'play'; $('app').classList.toggle('playing', screen === 'play');
   closeBubble(); closeSheet(); window.scrollTo(0, 0);
 }
@@ -2821,7 +2915,7 @@ const ATELIER_MODULES = [
 function atelierRead(){try{return JSON.parse(localStorage.getItem(ATELIER_KEY)||'{}')||{};}catch(e){return {};}}
 function atelierWrite(p){try{localStorage.setItem(ATELIER_KEY,JSON.stringify(p));}catch(e){}}
 let atelier={id:null,tab:'learn',done:[],blocked:[],answers:{},submitted:false};
-function atelierShow(){['start','play','bon','debrief','report'].forEach(s=>{$('scr-'+s).hidden=true;});$('scr-atelier').hidden=false;S.screen='atelier';$('belt').hidden=true;$('app').classList.remove('playing');atelierRenderList();window.scrollTo(0,0);}
+function atelierShow(){['start','play','bon','debrief','report','demo'].forEach(s=>{$('scr-'+s).hidden=true;});$('scr-atelier').hidden=false;S.screen='atelier';$('belt').hidden=true;$('app').classList.remove('playing');atelierRenderList();window.scrollTo(0,0);}
 function atelierProgress(m,p){const x=p[m.id]||{};return x.quiz>=70&&x.exercise?100:(x.exercise?75:(x.quiz?25:0));}
 function atelierRenderList(){const p=atelierRead();$('atelier-sub').textContent=`${ATELIER_MODULES.filter(m=>atelierProgress(m,p)===100).length}/${ATELIER_MODULES.length} modules validés · progression conservée sur cet appareil`;$('atelier-content').innerHTML=`<div class="atelier-grid">${ATELIER_MODULES.map(m=>{const n=atelierProgress(m,p);return `<button class="atelier-module" data-am="${m.id}"><span class="tag">${m.icon} ${esc(m.title)}</span><p>${esc(m.summary)}</p><small>${n}% · ${m.actions.length} gestes · ${m.quiz.length} questions</small><span class="progress"><i style="width:${n}%"></i></span></button>`;}).join('')}</div><div class="atelier-alert" style="margin-top:14px"><b>Support pédagogique uniquement.</b> Cet atelier ne remplace ni une habilitation, ni les procédures de l’hôtel, ni l’intervention d’une personne qualifiée.</div>`;}
 function atelierOpen(id){atelier={id,tab:'learn',done:[],blocked:[],answers:{},submitted:false,elecView:'room',elec:{hotel:true,floor:true,room:true,light:true,sockets:true,clim:true}};atelierRender();}
@@ -2942,5 +3036,6 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
 </script>
+<script src="demontage.js"></script>
 
 </body></html>

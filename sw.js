@@ -1,5 +1,5 @@
-const CACHE = 'chambre-214-v7';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'chambre-214-v8';
+const ASSETS = ['./', './index.html', './demontage.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
